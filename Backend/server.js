@@ -11,10 +11,10 @@ app.use(express.urlencoded({ extended: true }));
 // Serve frontend files
 app.use(express.static(path.join(__dirname, "../frontend")));
 
-// MySQL connection
+// MySQL / TiDB connection
 const pool = mysql.createPool({
   host: process.env.MYSQLHOST || process.env.DB_HOST || "localhost",
-  port: process.env.MYSQLPORT || process.env.DB_PORT || 3306,
+  port: Number(process.env.MYSQLPORT || process.env.DB_PORT || 3306),
   user: process.env.MYSQLUSER || process.env.DB_USER || "root",
   password: process.env.MYSQLPASSWORD || process.env.DB_PASSWORD || "",
   database: process.env.MYSQLDATABASE || process.env.DB_NAME || "wedding_rsvp_db",
@@ -29,7 +29,40 @@ const pool = mysql.createPool({
       : undefined,
 });
 
-// Main RSVP form route
+// Auto-create table if it does not exist
+async function initializeDatabase() {
+  try {
+    await pool.execute(`
+      CREATE TABLE IF NOT EXISTS rsvp_responses (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        full_name VARCHAR(150) NOT NULL,
+        attendance ENUM('Yes', 'No', 'Maybe') NOT NULL,
+        guests INT DEFAULT 0,
+        phone VARCHAR(30),
+        message TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    console.log("Database table is ready.");
+  } catch (error) {
+    console.error("Database Initialization Error:", error.message);
+  }
+}
+
+initializeDatabase();
+
+// Homepage
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "../frontend/index.html"));
+});
+
+// Admin page
+app.get("/admin.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "../frontend/admin.html"));
+});
+
+// RSVP submission
 app.post("/api/rsvp", async (req, res) => {
   try {
     const { fullName, attendance, guests, phone, message } = req.body;
@@ -77,14 +110,14 @@ app.post("/api/rsvp", async (req, res) => {
   }
 });
 
-// Admin authentication checker
+// Admin password middleware
 function checkAdminPassword(req, res, next) {
   const adminPassword = req.headers["x-admin-password"];
 
   if (!process.env.ADMIN_PASSWORD) {
     return res.status(500).json({
       success: false,
-      message: "Admin password is not set in .env file.",
+      message: "Admin password is not set.",
     });
   }
 
@@ -98,19 +131,19 @@ function checkAdminPassword(req, res, next) {
   next();
 }
 
-// Get all RSVP records for guest manager
+// Get all RSVP records
 app.get("/api/admin/rsvps", checkAdminPassword, async (req, res) => {
   try {
     const [rows] = await pool.query(
       `SELECT 
-        id, 
-        full_name, 
-        attendance, 
-        guests, 
-        phone, 
-        message, 
-        created_at 
-      FROM rsvp_responses 
+        id,
+        full_name,
+        attendance,
+        guests,
+        phone,
+        message,
+        created_at
+      FROM rsvp_responses
       ORDER BY created_at DESC`
     );
 
@@ -128,7 +161,7 @@ app.get("/api/admin/rsvps", checkAdminPassword, async (req, res) => {
   }
 });
 
-// Update a guest RSVP record
+// Update RSVP record
 app.put("/api/admin/rsvps/:id", checkAdminPassword, async (req, res) => {
   try {
     const { id } = req.params;
@@ -144,7 +177,7 @@ app.put("/api/admin/rsvps/:id", checkAdminPassword, async (req, res) => {
     }
 
     await pool.execute(
-      `UPDATE rsvp_responses 
+      `UPDATE rsvp_responses
        SET attendance = ?, phone = ?, message = ?
        WHERE id = ?`,
       [attendance, phone || "", message || "", id]
@@ -164,7 +197,7 @@ app.put("/api/admin/rsvps/:id", checkAdminPassword, async (req, res) => {
   }
 });
 
-// Delete a guest RSVP record
+// Delete RSVP record
 app.delete("/api/admin/rsvps/:id", checkAdminPassword, async (req, res) => {
   try {
     const { id } = req.params;
@@ -208,6 +241,11 @@ app.get("/test-db", async (req, res) => {
 // Health check
 app.get("/health", (req, res) => {
   res.send("Server is running.");
+});
+
+// 404 fallback
+app.use((req, res) => {
+  res.status(404).send("Page not found.");
 });
 
 // Start server
