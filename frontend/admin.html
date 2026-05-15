@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Guest Manager | Mark & Pauline</title>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: Georgia, "Times New Roman", serif;
+    }
+
+    body {
+      background: #fffdf7;
+      color: #4f4a2a;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #5d6f22;
+      color: white;
+      padding: 25px 8%;
+      text-align: center;
+    }
+
+    header h1 {
+      font-weight: normal;
+      margin-bottom: 8px;
+    }
+
+    header p {
+      font-size: 15px;
+    }
+
+    .container {
+      padding: 35px 8%;
+    }
+
+    .login-box,
+    .dashboard {
+      max-width: 1100px;
+      margin: auto;
+    }
+
+    .login-card {
+      max-width: 420px;
+      margin: 50px auto;
+      background: white;
+      padding: 30px;
+      border-radius: 18px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.10);
+      border-left: 6px solid #d4af37;
+    }
+
+    .login-card h2 {
+      color: #6a7f2b;
+      margin-bottom: 18px;
+      font-weight: normal;
+      text-align: center;
+    }
+
+    input,
+    select,
+    textarea,
+    button {
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 15px;
+    }
+
+    input,
+    select,
+    textarea {
+      border: 1px solid #cbd58a;
+      outline: none;
+      background: white;
+      color: #4f4a2a;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: #91a83b;
+      box-shadow: 0 0 0 3px rgba(145, 168, 59, 0.12);
+    }
+
+    button {
+      background: #7b972b;
+      color: white;
+      border: none;
+      cursor: pointer;
+      transition: 0.3s;
+      margin-top: 12px;
+    }
+
+    button:hover {
+      background: #d4af37;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+      margin-bottom: 25px;
+    }
+
+    .stat-card {
+      background: white;
+      padding: 22px;
+      border-radius: 16px;
+      box-shadow: 0 5px 16px rgba(0,0,0,0.08);
+      border-top: 5px solid #a4b84a;
+      text-align: center;
+    }
+
+    .stat-card h3 {
+      color: #7a922f;
+      font-size: 15px;
+      margin-bottom: 10px;
+      font-weight: normal;
+    }
+
+    .stat-card p {
+      font-size: 30px;
+      font-weight: bold;
+      color: #b88f13;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 1.5fr 1fr 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 22px;
+      background: white;
+      padding: 18px;
+      border-radius: 16px;
+      box-shadow: 0 5px 16px rgba(0,0,0,0.08);
+    }
+
+    .controls button {
+      margin-top: 0;
+    }
+
+    .table-wrapper {
+      overflow-x: auto;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 5px 16px rgba(0,0,0,0.08);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 780px;
+    }
+
+    th,
+    td {
+      padding: 14px;
+      border-bottom: 1px solid #eee9c8;
+      text-align: left;
+      vertical-align: top;
+      font-size: 14px;
+    }
+
+    th {
+      background: #f5f7e7;
+      color: #5d6f22;
+    }
+
+    tr:hover {
+      background: #fffdf2;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: bold;
+    }
+
+    .yes {
+      background: #dcedc8;
+      color: #33691e;
+    }
+
+    .no {
+      background: #ffcdd2;
+      color: #b71c1c;
+    }
+
+    .maybe {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .action-btn {
+      padding: 8px 10px;
+      margin-top: 0;
+      margin-right: 6px;
+      width: auto;
+      font-size: 13px;
+    }
+
+    .edit-btn {
+      background: #7b972b;
+    }
+
+    .delete-btn {
+      background: #b23b3b;
+    }
+
+    .delete-btn:hover {
+      background: #8b1e1e;
+    }
+
+    .message {
+      margin-top: 15px;
+      text-align: center;
+      font-weight: bold;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 999;
+    }
+
+    .modal-card {
+      background: white;
+      width: 100%;
+      max-width: 500px;
+      padding: 28px;
+      border-radius: 18px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.25);
+    }
+
+    .modal-card h2 {
+      color: #6a7f2b;
+      margin-bottom: 18px;
+      font-weight: normal;
+    }
+
+    .modal-card label {
+      display: block;
+      margin: 12px 0 6px;
+      font-weight: bold;
+    }
+
+    textarea {
+      min-height: 110px;
+      resize: none;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .cancel-btn {
+      background: #777;
+    }
+
+    .cancel-btn:hover {
+      background: #555;
+    }
+
+    @media (max-width: 900px) {
+      .stats {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .controls {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 520px) {
+      header {
+        padding: 22px 5%;
+      }
+
+      .container {
+        padding: 25px 5%;
+      }
+
+      .stats {
+        grid-template-columns: 1fr;
+      }
+
+      .stat-card p {
+        font-size: 26px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <h1>Guest Manager</h1>
+    <p>Mark Lee Amongo & Pauline Giselle Paraan Wedding</p>
+  </header>
+
+  <main class="container">
+
+    <section class="login-box" id="loginBox">
+      <div class="login-card">
+        <h2>Admin Login</h2>
+
+        <input type="password" id="adminPassword" placeholder="Enter admin password">
+
+        <button onclick="login()">Open Guest Manager</button>
+
+        <p class="message" id="loginMessage"></p>
+      </div>
+    </section>
+
+    <section class="dashboard hidden" id="dashboard">
+
+      <div class="stats">
+        <div class="stat-card">
+          <h3>Total Responses</h3>
+          <p id="totalCount">0</p>
+        </div>
+
+        <div class="stat-card">
+          <h3>Attending</h3>
+          <p id="yesCount">0</p>
+        </div>
+
+        <div class="stat-card">
+          <h3>Not Attending</h3>
+          <p id="noCount">0</p>
+        </div>
+
+        <div class="stat-card">
+          <h3>Maybe</h3>
+          <p id="maybeCount">0</p>
+        </div>
+      </div>
+
+      <div class="controls">
+        <input type="text" id="searchInput" placeholder="Search guest name or message..." oninput="renderTable()">
+
+        <select id="filterAttendance" onchange="renderTable()">
+          <option value="All">All RSVP Status</option>
+          <option value="Yes">Attending</option>
+          <option value="No">Not Attending</option>
+          <option value="Maybe">Maybe</option>
+        </select>
+
+        <button onclick="exportCSV()">Export CSV</button>
+
+        <button onclick="logout()">Logout</button>
+      </div>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Guest Name</th>
+              <th>Status</th>
+              <th>Message</th>
+              <th>Date Submitted</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+
+          <tbody id="guestTableBody">
+          </tbody>
+        </table>
+      </div>
+
+      <p class="message" id="dashboardMessage"></p>
+    </section>
+
+  </main>
+
+  <div class="modal" id="editModal">
+    <div class="modal-card">
+      <h2>Edit Guest RSVP</h2>
+
+      <input type="hidden" id="editId">
+
+      <label>Attendance Status</label>
+      <select id="editAttendance">
+        <option value="Yes">Yes, will attend</option>
+        <option value="No">Cannot attend</option>
+        <option value="Maybe">Maybe</option>
+      </select>
+
+      <label>Message</label>
+      <textarea id="editMessage"></textarea>
+
+      <div class="modal-actions">
+        <button onclick="saveEdit()">Save Changes</button>
+        <button class="cancel-btn" onclick="closeModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let adminPassword = sessionStorage.getItem("adminPassword") || "";
+    let guests = [];
+
+    window.onload = function() {
+      if (adminPassword) {
+        document.getElementById("loginBox").classList.add("hidden");
+        document.getElementById("dashboard").classList.remove("hidden");
+        loadGuests();
+      }
+    };
+
+    function login() {
+      const passwordInput = document.getElementById("adminPassword").value.trim();
+
+      if (!passwordInput) {
+        showLoginMessage("Please enter the admin password.", "red");
+        return;
+      }
+
+      adminPassword = passwordInput;
+      sessionStorage.setItem("adminPassword", adminPassword);
+
+      document.getElementById("loginBox").classList.add("hidden");
+      document.getElementById("dashboard").classList.remove("hidden");
+
+      loadGuests();
+    }
+
+    function logout() {
+      sessionStorage.removeItem("adminPassword");
+      adminPassword = "";
+      guests = [];
+
+      document.getElementById("dashboard").classList.add("hidden");
+      document.getElementById("loginBox").classList.remove("hidden");
+      document.getElementById("adminPassword").value = "";
+    }
+
+    async function loadGuests() {
+      try {
+        const response = await fetch("/api/admin/rsvps", {
+          headers: {
+            "x-admin-password": adminPassword
+          }
+        });
+
+        const result = await response.json();
+
+        if (!result.success) {
+          showDashboardMessage(result.message || "Unable to load guests.", "red");
+          logout();
+          return;
+        }
+
+        guests = result.data;
+        updateStats();
+        renderTable();
+      } catch (error) {
+        showDashboardMessage("Unable to connect to the server.", "red");
+      }
+    }
+
+    function updateStats() {
+      const total = guests.length;
+      const yes = guests.filter(g => g.attendance === "Yes").length;
+      const no = guests.filter(g => g.attendance === "No").length;
+      const maybe = guests.filter(g => g.attendance === "Maybe").length;
+
+      document.getElementById("totalCount").textContent = total;
+      document.getElementById("yesCount").textContent = yes;
+      document.getElementById("noCount").textContent = no;
+      document.getElementById("maybeCount").textContent = maybe;
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById("guestTableBody");
+      const search = document.getElementById("searchInput").value.toLowerCase();
+      const filter = document.getElementById("filterAttendance").value;
+
+      let filteredGuests = guests.filter(function(guest) {
+        const name = String(guest.full_name || "").toLowerCase();
+        const message = String(guest.message || "").toLowerCase();
+
+        const matchesSearch = name.includes(search) || message.includes(search);
+        const matchesFilter = filter === "All" || guest.attendance === filter;
+
+        return matchesSearch && matchesFilter;
+      });
+
+      tbody.innerHTML = "";
+
+      if (filteredGuests.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="5" style="text-align:center;">No guest records found.</td>
+          </tr>
+        `;
+        return;
+      }
+
+      filteredGuests.forEach(function(guest) {
+        const statusClass = guest.attendance.toLowerCase();
+        const dateSubmitted = new Date(guest.created_at).toLocaleString();
+
+        const row = `
+          <tr>
+            <td><strong>${escapeHTML(guest.full_name)}</strong></td>
+            <td><span class="badge ${statusClass}">${guest.attendance}</span></td>
+            <td>${escapeHTML(guest.message || "-")}</td>
+            <td>${dateSubmitted}</td>
+            <td>
+              <button class="action-btn edit-btn" onclick="openEditModal(${guest.id})">Edit</button>
+              <button class="action-btn delete-btn" onclick="deleteGuest(${guest.id})">Delete</button>
+            </td>
+          </tr>
+        `;
+
+        tbody.innerHTML += row;
+      });
+    }
+
+    function openEditModal(id) {
+      const guest = guests.find(g => g.id === id);
+
+      if (!guest) return;
+
+      document.getElementById("editId").value = guest.id;
+      document.getElementById("editAttendance").value = guest.attendance;
+      document.getElementById("editMessage").value = guest.message || "";
+
+      document.getElementById("editModal").style.display = "flex";
+    }
+
+    function closeModal() {
+      document.getElementById("editModal").style.display = "none";
+    }
+
+    async function saveEdit() {
+      const id = document.getElementById("editId").value;
+
+      const updatedData = {
+        attendance: document.getElementById("editAttendance").value,
+        phone: "",
+        message: document.getElementById("editMessage").value.trim()
+      };
+
+      try {
+        const response = await fetch(`/api/admin/rsvps/${id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            "x-admin-password": adminPassword
+          },
+          body: JSON.stringify(updatedData)
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          closeModal();
+          showDashboardMessage("Guest record updated successfully.", "green");
+          loadGuests();
+        } else {
+          showDashboardMessage(result.message || "Unable to update record.", "red");
+        }
+      } catch (error) {
+        showDashboardMessage("Unable to update guest record.", "red");
+      }
+    }
+
+    async function deleteGuest(id) {
+      const confirmDelete = confirm("Are you sure you want to delete this guest RSVP?");
+
+      if (!confirmDelete) return;
+
+      try {
+        const response = await fetch(`/api/admin/rsvps/${id}`, {
+          method: "DELETE",
+          headers: {
+            "x-admin-password": adminPassword
+          }
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          showDashboardMessage("Guest record deleted successfully.", "green");
+          loadGuests();
+        } else {
+          showDashboardMessage(result.message || "Unable to delete record.", "red");
+        }
+      } catch (error) {
+        showDashboardMessage("Unable to delete guest record.", "red");
+      }
+    }
+
+    function exportCSV() {
+      if (guests.length === 0) {
+        showDashboardMessage("No records to export.", "red");
+        return;
+      }
+
+      const headers = [
+        "Full Name",
+        "Attendance",
+        "Message",
+        "Date Submitted"
+      ];
+
+      const rows = guests.map(function(guest) {
+        return [
+          guest.full_name,
+          guest.attendance,
+          guest.message || "",
+          new Date(guest.created_at).toLocaleString()
+        ];
+      });
+
+      let csvContent = headers.join(",") + "\n";
+
+      rows.forEach(function(row) {
+        csvContent += row.map(function(value) {
+          return `"${String(value).replace(/"/g, '""')}"`;
+        }).join(",") + "\n";
+      });
+
+      const blob = new Blob([csvContent], {
+        type: "text/csv;charset=utf-8;"
+      });
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+
+      link.href = url;
+      link.download = "mark-pauline-wedding-guests.csv";
+      link.click();
+
+      URL.revokeObjectURL(url);
+    }
+
+    function escapeHTML(value) {
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function showLoginMessage(message, color) {
+      const loginMessage = document.getElementById("loginMessage");
+      loginMessage.textContent = message;
+      loginMessage.style.color = color;
+    }
+
+    function showDashboardMessage(message, color) {
+      const dashboardMessage = document.getElementById("dashboardMessage");
+      dashboardMessage.textContent = message;
+      dashboardMessage.style.color = color;
+
+      setTimeout(function() {
+        dashboardMessage.textContent = "";
+      }, 3000);
+    }
+  </script>
+
+</body>
+</html>

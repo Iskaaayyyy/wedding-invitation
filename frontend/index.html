@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Wedding Invitation | Mark & Pauline</title>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: Georgia, "Times New Roman", serif;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      background: #fffdf7;
+      color: #4f4a2a;
+      line-height: 1.6;
+    }
+
+    .hero {
+      min-height: 100vh;
+      background:
+        linear-gradient(rgba(60, 82, 27, 0.55), rgba(199, 166, 35, 0.35)),
+        url("https://images.unsplash.com/photo-1519741497674-611481863552") center/cover no-repeat;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      color: white;
+      padding: 25px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before,
+    .hero::after {
+      content: "♥";
+      position: absolute;
+      font-size: 180px;
+      color: rgba(255, 255, 255, 0.08);
+      z-index: 0;
+    }
+
+    .hero::before {
+      top: 40px;
+      left: 40px;
+    }
+
+    .hero::after {
+      bottom: 40px;
+      right: 40px;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 1;
+      max-width: 900px;
+      background: rgba(0, 0, 0, 0.22);
+      padding: 38px 28px;
+      border-radius: 24px;
+      backdrop-filter: blur(3px);
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.18);
+    }
+
+    .small-text {
+      font-size: 16px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+
+    .hero h1 {
+      font-size: 60px;
+      font-weight: normal;
+      margin-bottom: 16px;
+      line-height: 1.18;
+    }
+
+    .subtitle {
+      font-size: 20px;
+      margin-bottom: 10px;
+    }
+
+    .date,
+    .venue {
+      font-size: 22px;
+      margin-bottom: 8px;
+    }
+
+    .hashtag {
+      display: inline-block;
+      margin-top: 16px;
+      padding: 10px 22px;
+      background: rgba(255, 255, 255, 0.92);
+      color: #6a7f2b;
+      border-radius: 30px;
+      font-size: 18px;
+      font-weight: bold;
+      letter-spacing: 1px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+    }
+
+    .btn {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 36px;
+      background: #d4af37;
+      color: white;
+      text-decoration: none;
+      border-radius: 30px;
+      transition: 0.3s ease;
+      font-size: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.7);
+    }
+
+    .btn:hover {
+      background: #8ea63a;
+      transform: translateY(-2px);
+    }
+
+    section {
+      padding: 75px 10%;
+      text-align: center;
+    }
+
+    h2 {
+      font-size: 35px;
+      margin-bottom: 18px;
+      color: #6a7f2b;
+      font-weight: normal;
+    }
+
+    .section-intro {
+      max-width: 780px;
+      margin: 0 auto 25px;
+      font-size: 17px;
+      color: #5c5731;
+    }
+
+    .about-section {
+      background: #fffef8;
+    }
+
+    .about-wrapper {
+      max-width: 1050px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1.2fr;
+      gap: 45px;
+      align-items: center;
+      text-align: left;
+    }
+
+    .photo-frame {
+      background: white;
+      padding: 14px;
+      border-radius: 26px;
+      box-shadow: 0 10px 26px rgba(0, 0, 0, 0.12);
+      border: 4px solid #f3edb8;
+    }
+
+    .couple-photo {
+      width: 100%;
+      display: block;
+      border-radius: 20px;
+    }
+
+    .photo-caption {
+      margin-top: 15px;
+      font-size: 17px;
+      color: #6a7f2b;
+      font-style: italic;
+      text-align: center;
+    }
+
+    .story-content {
+      background: #ffffff;
+      padding: 35px;
+      border-radius: 24px;
+      box-shadow: 0 8px 22px rgba(0, 0, 0, 0.08);
+      border-left: 6px solid #d4af37;
+    }
+
+    .story-content h2 {
+      text-align: left;
+      margin-bottom: 15px;
+    }
+
+    .story-content p {
+      font-size: 18px;
+      margin-bottom: 18px;
+      color: #4f4a2a;
+    }
+
+    .story-content .hashtag {
+      margin-top: 5px;
+      font-size: 16px;
+    }
+
+    .countdown-section {
+      background: linear-gradient(to bottom, #fffef8, #f8f9ee);
+    }
+
+    .countdown {
+      display: flex;
+      justify-content: center;
+      gap: 18px;
+      flex-wrap: wrap;
+      margin-top: 28px;
+    }
+
+    .countdown div {
+      background: white;
+      padding: 22px;
+      width: 130px;
+      border-radius: 18px;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+      border: 2px solid #f0ebc8;
+    }
+
+    .countdown span {
+      font-size: 34px;
+      font-weight: bold;
+      color: #b88f13;
+    }
+
+    .countdown p {
+      margin-top: 8px;
+      font-size: 15px;
+    }
+
+    .details {
+      background: #fffef8;
+    }
+
+    .card-container {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      flex-wrap: wrap;
+      margin-top: 30px;
+    }
+
+    .card {
+      background: white;
+      width: 305px;
+      padding: 28px;
+      border-radius: 18px;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+      border-top: 6px solid #a4b84a;
+      text-align: left;
+    }
+
+    .card h3 {
+      color: #7a922f;
+      margin-bottom: 14px;
+      text-align: center;
+      font-size: 24px;
+      font-weight: normal;
+    }
+
+    .card p {
+      margin-bottom: 8px;
+    }
+
+    .attire {
+      background: #f8f9ee;
+    }
+
+    .palette {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 22px;
+      margin-top: 32px;
+    }
+
+    .color-item {
+      width: 120px;
+      text-align: center;
+      font-size: 14px;
+    }
+
+    .color-dot {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      margin: 0 auto 10px;
+      border: 3px solid #ffffff;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.14);
+    }
+
+    .hashtag-section {
+      background: #fffdf4;
+    }
+
+    .hashtag-box {
+      max-width: 720px;
+      margin: 28px auto 0;
+      background: white;
+      padding: 30px;
+      border-radius: 22px;
+      border: 3px dashed #d4af37;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+    }
+
+    .hashtag-box h3 {
+      color: #7a922f;
+      font-size: 26px;
+      margin-bottom: 10px;
+      font-weight: normal;
+    }
+
+    .hashtag-box p {
+      font-size: 22px;
+      font-weight: bold;
+      color: #b88f13;
+      word-break: break-word;
+    }
+
+    .rsvp {
+      background: linear-gradient(to bottom, #f5f7e7, #fff7d9);
+    }
+
+    form {
+      max-width: 540px;
+      margin: 30px auto 0;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      width: 100%;
+    }
+
+    input,
+    select,
+    textarea,
+    button {
+      width: 100%;
+      padding: 14px;
+      border-radius: 10px;
+      font-size: 16px;
+    }
+
+    input,
+    select,
+    textarea {
+      border: 1px solid #cbd58a;
+      outline: none;
+      background: white;
+      color: #4f4a2a;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: #91a83b;
+      box-shadow: 0 0 0 3px rgba(145, 168, 59, 0.12);
+    }
+
+    textarea {
+      height: 120px;
+      resize: none;
+    }
+
+    button {
+      background: #7b972b;
+      color: white;
+      border: none;
+      cursor: pointer;
+      transition: 0.3s ease;
+    }
+
+    button:hover {
+      background: #d4af37;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+
+    .rsvp-note {
+      margin-top: 12px;
+      font-size: 15px;
+      color: #66622d;
+    }
+
+    #responseMessage {
+      margin-top: 18px;
+      font-weight: bold;
+    }
+
+    .final-notes {
+      background: #f7f7e8;
+    }
+
+    .final-wrapper {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .request-box,
+    .gift-box {
+      background: white;
+      padding: 30px;
+      border-radius: 18px;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+      text-align: left;
+      border-left: 6px solid #d4af37;
+      margin-top: 22px;
+    }
+
+    .request-box ul {
+      margin-left: 22px;
+      margin-top: 12px;
+    }
+
+    .request-box li {
+      margin-bottom: 10px;
+    }
+
+    .gift-box h3,
+    .request-box h3 {
+      margin-bottom: 10px;
+      color: #7a922f;
+      font-weight: normal;
+      font-size: 24px;
+    }
+
+    footer {
+      background: #5d6f22;
+      color: white;
+      text-align: center;
+      padding: 32px 20px;
+    }
+
+    footer p {
+      margin-bottom: 6px;
+    }
+
+    img {
+      max-width: 100%;
+      height: auto;
+    }
+
+    .hashtag,
+    .hashtag-box p {
+      word-break: break-word;
+      overflow-wrap: break-word;
+    }
+
+    @media (max-width: 850px) {
+      .about-wrapper {
+        grid-template-columns: 1fr;
+        text-align: center;
+      }
+
+      .story-content {
+        text-align: center;
+      }
+
+      .story-content h2 {
+        text-align: center;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .hero {
+        padding: 18px;
+      }
+
+      .hero-content {
+        padding: 30px 18px;
+      }
+
+      .hero h1 {
+        font-size: 38px;
+      }
+
+      .subtitle,
+      .date,
+      .venue {
+        font-size: 18px;
+      }
+
+      .hashtag {
+        font-size: 15px;
+        padding: 9px 16px;
+      }
+
+      h2 {
+        font-size: 28px;
+      }
+
+      section {
+        padding: 55px 6%;
+      }
+
+      .card {
+        width: 100%;
+      }
+
+      .countdown div {
+        width: 112px;
+      }
+
+      .hashtag-box p {
+        font-size: 18px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .hero h1 {
+        font-size: 31px;
+      }
+
+      .hero-content {
+        width: 100%;
+      }
+
+      .countdown div {
+        width: 45%;
+        padding: 18px 10px;
+      }
+
+      .countdown span {
+        font-size: 28px;
+      }
+
+      .color-item {
+        width: 90px;
+      }
+
+      .color-dot {
+        width: 58px;
+        height: 58px;
+      }
+
+      .story-content,
+      .request-box,
+      .gift-box {
+        padding: 22px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <section class="hero">
+    <div class="hero-content">
+      <p class="small-text">Together with their families</p>
+
+      <h1>
+        Mark Lee Amongo
+        <br>
+        &
+        <br>
+        Pauline Giselle Paraan
+      </h1>
+
+      <p class="subtitle">request the honor of your presence</p>
+      <p class="date">June 28, 2026 • 11:30 AM</p>
+      <p class="venue">Manila City Hall</p>
+
+      <p class="hashtag">#PAULINEgetsMARKedFinaLEE</p>
+
+      <br>
+
+      <a href="#rsvp" class="btn">RSVP Now</a>
+    </div>
+  </section>
+
+  <section class="about-section">
+    <div class="about-wrapper">
+      <div class="photo-frame">
+        <img
+          src="https://i.postimg.cc/DZ6LhrM4/image.png"
+          alt="Mark Lee Amongo and Pauline Giselle Paraan"
+          class="couple-photo"
+        >
+
+        <p class="photo-caption">With love, Mark & Pauline</p>
+      </div>
+
+      <div class="story-content">
+        <h2>Our Story</h2>
+
+        <p>
+          From simple moments to lasting memories, our journey has been filled with love,
+          patience, laughter, and faith. As we begin this new chapter together, we would
+          be truly honored to have you witness and celebrate this special day with us.
+        </p>
+
+        <p>
+          Your presence will make our wedding day more meaningful as we celebrate the
+          beginning of our forever with the people closest to our hearts.
+        </p>
+
+        <p class="hashtag">#PAULINEgetsMARKedFinaLEE</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="countdown-section">
+    <h2>Counting Down to Our Special Day</h2>
+
+    <p class="section-intro">
+      We would be delighted to celebrate this beautiful moment with you.
+    </p>
+
+    <div class="countdown">
+      <div>
+        <span id="days">00</span>
+        <p>Days</p>
+      </div>
+
+      <div>
+        <span id="hours">00</span>
+        <p>Hours</p>
+      </div>
+
+      <div>
+        <span id="minutes">00</span>
+        <p>Minutes</p>
+      </div>
+
+      <div>
+        <span id="seconds">00</span>
+        <p>Seconds</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="details">
+    <h2>Wedding Details</h2>
+
+    <div class="card-container">
+      <div class="card">
+        <h3>Ceremony</h3>
+        <p><strong>Date:</strong> June 28, 2026</p>
+        <p><strong>Time:</strong> 11:30 AM</p>
+        <p><strong>Venue:</strong> Manila City Hall</p>
+      </div>
+
+      <div class="card">
+        <h3>Reception</h3>
+        <p><strong>Venue:</strong> Coffee Chapters</p>
+        <p><strong>Location:</strong> Pasay City</p>
+        <p><strong>Schedule:</strong> After the ceremony</p>
+      </div>
+
+      <div class="card">
+        <h3>RSVP Deadline</h3>
+        <p><strong>Kindly respond on or before:</strong></p>
+        <p>May 30, 2026</p>
+        <p>Please note: <strong>No +1</strong></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="attire">
+    <h2>Attire Guide</h2>
+
+    <p class="section-intro">
+      Our wedding motif is <strong>yellow and green</strong>. Guests may choose from these shades for more flexibility and comfort.
+    </p>
+
+    <div class="palette">
+      <div class="color-item">
+        <div class="color-dot" style="background:#fffde7;"></div>
+        <p>Pale Yellow</p>
+      </div>
+
+      <div class="color-item">
+        <div class="color-dot" style="background:#fff9c4;"></div>
+        <p>Light Yellow</p>
+      </div>
+
+      <div class="color-item">
+        <div class="color-dot" style="background:#ffe082;"></div>
+        <p>Soft Gold</p>
+      </div>
+
+      <div class="color-item">
+        <div class="color-dot" style="background:#ffd54f;"></div>
+        <p>Warm Yellow</p>
+      </div>
+
+      <div class="color-item">
+        <div class="color-dot" style="background:#f4d03f;"></div>
+        <p>Sunflower</p>
+      </div>
+
+      <div class="color-item">
+        <div class="color-dot" style="background:#d4ac0d;"></div>
+        <p>Mustard</p>
+      </div>
+
+      <div class="color-item">
+        <div class="color-dot" style="background:#fff8dc;"></div>
+        <p>Cream</p>
+      </div>
+
+      <div class="color-item">
+        <div class="color-dot" style="background:#f5deb3;"></div>
+        <p>Beige Gold</p>
+      </div>
+
+      <div class="color-item">
+        <div class="color-dot" style="background:#f1f8e9;"></div>
+        <p>Pale Green</p>
+      </div>
+
+      <div class="color-item">
+        <div class="color-dot" style="background:#dcedc8;"></div>
+        <p>Mint Green</p>
+      </div>
+
+      <div class="color-item">
+        <div class="color-dot" style="background:#c5e1a5;"></div>
+        <p>Soft Green</p>
+      </div>
+
+      <div class="color-item">
+        <div class="color-dot" style="background:#aed581;"></div>
+        <p>Sage Green</p>
+      </div>
+
+      <div class="color-item">
+        <div class="color-dot" style="background:#8bc34a;"></div>
+        <p>Fresh Green</p>
+      </div>
+
+      <div class="color-item">
+        <div class="color-dot" style="background:#689f38;"></div>
+        <p>Leaf Green</p>
+      </div>
+
+      <div class="color-item">
+        <div class="color-dot" style="background:#556b2f;"></div>
+        <p>Olive Green</p>
+      </div>
+
+      <div class="color-item">
+        <div class="color-dot" style="background:#2e7d32;"></div>
+        <p>Deep Green</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="hashtag-section">
+    <h2>Our Wedding Hashtag</h2>
+
+    <p class="section-intro">
+      Share your photos and memories with us using our official wedding hashtag.
+    </p>
+
+    <div class="hashtag-box">
+      <h3>Official Hashtag</h3>
+      <p>#PAULINEgetsMARKedFinaLEE</p>
+    </div>
+  </section>
+
+  <section class="rsvp" id="rsvp">
+    <h2>RSVP</h2>
+
+    <p class="section-intro">
+      Kindly confirm your attendance on or before <strong>May 30, 2026</strong>.
+    </p>
+
+    <div class="request-box" id="deadlineBox">
+      <p>
+        <strong>Reminder:</strong> RSVP is for the invited guest only. No +1 allowed.
+      </p>
+    </div>
+
+    <form id="rsvpForm">
+      <input type="text" id="fullName" placeholder="Full Name" required>
+
+      <select id="attendance" required>
+        <option value="">Will you attend?</option>
+        <option value="Yes">Yes, I will attend</option>
+        <option value="No">Sorry, I cannot attend</option>
+        <option value="Maybe">Maybe</option>
+      </select>
+
+      <textarea id="message" placeholder="Leave a message for the couple"></textarea>
+
+      <button type="submit" id="submitBtn">Submit RSVP</button>
+    </form>
+
+    <p class="rsvp-note">Please submit only one RSVP response per guest.</p>
+    <p id="responseMessage"></p>
+  </section>
+
+  <section class="final-notes">
+    <div class="final-wrapper">
+      <h2>Final Notes from the Couple</h2>
+
+      <p class="section-intro">
+        To help us keep the celebration simple, comfortable, and meaningful,
+        we kindly ask our guests to observe the following reminders.
+      </p>
+
+      <div class="request-box">
+        <h3>Request from the Couple</h3>
+
+        <p>
+          With love and respect, we kindly ask our dear guests to observe the following:
+        </p>
+
+        <ul>
+          <li>No bulky gifts</li>
+          <li>No wearing of strong perfume</li>
+          <li>No smoking or vaping</li>
+          <li>No liquor</li>
+          <li>No +1</li>
+        </ul>
+      </div>
+
+      <div class="gift-box">
+        <h3>Gift Note</h3>
+
+        <p>
+          Your presence at our wedding is the greatest gift of all. However, if you wish
+          to bless us with something more, a small gift would be sincerely appreciated.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Mark Lee Amongo & Pauline Giselle Paraan</p>
+    <p>June 28, 2026 • Manila City Hall</p>
+    <p>#PAULINEgetsMARKedFinaLEE</p>
+    <p>Thank you for being part of our special day.</p>
+  </footer>
+
+  <script>
+    const weddingDate = new Date(2026, 5, 28, 11, 30, 0).getTime();
+    const rsvpDeadline = new Date(2026, 4, 30, 23, 59, 59).getTime();
+
+    function updateCountdown() {
+      const now = new Date().getTime();
+      const distance = weddingDate - now;
+
+      if (distance <= 0) {
+        document.querySelector(".countdown").innerHTML =
+          "<h3>The wedding day has arrived!</h3>";
+        return;
+      }
+
+      const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((distance / (1000 * 60 * 60)) % 24);
+      const minutes = Math.floor((distance / (1000 * 60)) % 60);
+      const seconds = Math.floor((distance / 1000) % 60);
+
+      document.getElementById("days").textContent = days;
+      document.getElementById("hours").textContent = hours;
+      document.getElementById("minutes").textContent = minutes;
+      document.getElementById("seconds").textContent = seconds;
+    }
+
+    function checkRsvpDeadline() {
+      const now = new Date().getTime();
+      const form = document.getElementById("rsvpForm");
+      const submitBtn = document.getElementById("submitBtn");
+      const responseMessage = document.getElementById("responseMessage");
+      const deadlineBox = document.getElementById("deadlineBox");
+
+      if (now > rsvpDeadline) {
+        submitBtn.disabled = true;
+        submitBtn.style.background = "#999";
+
+        form.querySelectorAll("input, select, textarea").forEach(function(field) {
+          field.disabled = true;
+        });
+
+        deadlineBox.innerHTML =
+          "<p><strong>RSVP is now closed.</strong> Thank you for your response and understanding.</p>";
+
+        responseMessage.textContent = "The RSVP deadline has already passed.";
+        responseMessage.style.color = "red";
+      }
+    }
+
+    setInterval(updateCountdown, 1000);
+    updateCountdown();
+    checkRsvpDeadline();
+
+    document.getElementById("rsvpForm").addEventListener("submit", async function(e) {
+      e.preventDefault();
+
+      const now = new Date().getTime();
+      const responseMessage = document.getElementById("responseMessage");
+
+      if (now > rsvpDeadline) {
+        responseMessage.textContent = "RSVP is already closed.";
+        responseMessage.style.color = "red";
+        return;
+      }
+
+      const data = {
+        fullName: document.getElementById("fullName").value.trim(),
+        attendance: document.getElementById("attendance").value,
+        guests: 0,
+        phone: "",
+        message: document.getElementById("message").value.trim()
+      };
+
+      try {
+        const response = await fetch("/api/rsvp", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+
+        responseMessage.textContent = result.message;
+        responseMessage.style.color = result.success ? "green" : "red";
+
+        if (result.success) {
+          document.getElementById("rsvpForm").reset();
+        }
+      } catch (error) {
+        responseMessage.textContent = "Unable to submit RSVP. Please try again.";
+        responseMessage.style.color = "red";
+      }
+    });
+  </script>
+
+</body>
+</html>
