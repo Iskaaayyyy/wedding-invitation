@@ -325,6 +325,52 @@
       word-break: break-word;
     }
 
+    .memory-album {
+      background: #fffef8;
+    }
+
+    .album-grid {
+      margin-top: 35px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 22px;
+    }
+
+    .memory-card {
+      background: white;
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+      text-align: left;
+    }
+
+    .memory-card img {
+      width: 100%;
+      height: 230px;
+      object-fit: cover;
+      display: block;
+    }
+
+    .memory-card-content {
+      padding: 18px;
+    }
+
+    .memory-card-content h3 {
+      color: #6a7f2b;
+      margin-bottom: 8px;
+      font-weight: normal;
+    }
+
+    .memory-card-content p {
+      color: #4f4a2a;
+      font-size: 15px;
+    }
+
+    #memoryResponseMessage {
+      margin-top: 18px;
+      font-weight: bold;
+    }
+
     .rsvp {
       background: linear-gradient(to bottom, #f5f7e7, #fff7d9);
     }
@@ -456,6 +502,12 @@
       overflow-wrap: break-word;
     }
 
+    @media (max-width: 900px) {
+      .album-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
     @media (max-width: 850px) {
       .about-wrapper {
         grid-template-columns: 1fr;
@@ -513,6 +565,16 @@
 
       .hashtag-box p {
         font-size: 18px;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .album-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .memory-card img {
+        height: 210px;
       }
     }
 
@@ -769,6 +831,28 @@
     </div>
   </section>
 
+  <section class="memory-album" id="memoryAlbum">
+    <h2>Memory Album</h2>
+
+    <p class="section-intro">
+      Share your favorite photo or memory with us. Uploaded memories will appear here after approval.
+    </p>
+
+    <form id="memoryForm" enctype="multipart/form-data">
+      <input type="text" id="guestName" name="guestName" placeholder="Your Name" required>
+
+      <textarea id="memoryMessage" name="memoryMessage" placeholder="Write your message or memory"></textarea>
+
+      <input type="file" id="memoryPhoto" name="memoryPhoto" accept="image/*" required>
+
+      <button type="submit" id="memorySubmitBtn">Upload Memory</button>
+    </form>
+
+    <p id="memoryResponseMessage"></p>
+
+    <div class="album-grid" id="albumGrid"></div>
+  </section>
+
   <section class="rsvp" id="rsvp">
     <h2>RSVP</h2>
 
@@ -847,6 +931,15 @@
     const weddingDate = new Date(2026, 5, 28, 11, 30, 0).getTime();
     const rsvpDeadline = new Date(2026, 4, 30, 23, 59, 59).getTime();
 
+    function escapeHTML(value) {
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
     function updateCountdown() {
       const now = new Date().getTime();
       const distance = weddingDate - now;
@@ -891,9 +984,94 @@
       }
     }
 
+    async function loadApprovedMemories() {
+      const albumGrid = document.getElementById("albumGrid");
+
+      try {
+        const response = await fetch("/api/memories");
+        const result = await response.json();
+
+        if (!result.success) {
+          albumGrid.innerHTML = "<p>Unable to load memories.</p>";
+          return;
+        }
+
+        if (result.data.length === 0) {
+          albumGrid.innerHTML = "<p>No approved memories yet.</p>";
+          return;
+        }
+
+        albumGrid.innerHTML = "";
+
+        result.data.forEach(function(memory) {
+          const card = `
+            <div class="memory-card">
+              <img src="${memory.image_url}" alt="Wedding memory from ${escapeHTML(memory.guest_name)}">
+
+              <div class="memory-card-content">
+                <h3>${escapeHTML(memory.guest_name)}</h3>
+                <p>${escapeHTML(memory.message || "Shared a beautiful memory with us.")}</p>
+              </div>
+            </div>
+          `;
+
+          albumGrid.innerHTML += card;
+        });
+      } catch (error) {
+        albumGrid.innerHTML = "<p>Unable to load memories.</p>";
+      }
+    }
+
     setInterval(updateCountdown, 1000);
     updateCountdown();
     checkRsvpDeadline();
+    loadApprovedMemories();
+
+    document.getElementById("memoryForm").addEventListener("submit", async function(e) {
+      e.preventDefault();
+
+      const memoryResponseMessage = document.getElementById("memoryResponseMessage");
+      const memorySubmitBtn = document.getElementById("memorySubmitBtn");
+      const memoryPhoto = document.getElementById("memoryPhoto").files[0];
+
+      if (!memoryPhoto) {
+        memoryResponseMessage.textContent = "Please choose a photo.";
+        memoryResponseMessage.style.color = "red";
+        return;
+      }
+
+      const formData = new FormData();
+
+      formData.append("guestName", document.getElementById("guestName").value.trim());
+      formData.append("memoryMessage", document.getElementById("memoryMessage").value.trim());
+      formData.append("memoryPhoto", memoryPhoto);
+
+      try {
+        memorySubmitBtn.disabled = true;
+        memorySubmitBtn.textContent = "Uploading...";
+
+        const response = await fetch("/api/memories", {
+          method: "POST",
+          body: formData
+        });
+
+        const result = await response.json();
+
+        memoryResponseMessage.textContent = result.message;
+        memoryResponseMessage.style.color = result.success ? "green" : "red";
+
+        if (result.success) {
+          document.getElementById("memoryForm").reset();
+          loadApprovedMemories();
+        }
+      } catch (error) {
+        memoryResponseMessage.textContent = "Unable to upload memory. Please try again.";
+        memoryResponseMessage.style.color = "red";
+      } finally {
+        memorySubmitBtn.disabled = false;
+        memorySubmitBtn.textContent = "Upload Memory";
+      }
+    });
 
     document.getElementById("rsvpForm").addEventListener("submit", async function(e) {
       e.preventDefault();

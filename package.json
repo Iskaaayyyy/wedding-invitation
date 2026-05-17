@@ -11,8 +11,10 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "cloudinary": "^2.10.0",
     "dotenv": "^17.2.2",
     "express": "^5.2.1",
+    "multer": "^2.1.1",
     "mysql2": "^3.15.3"
   }
 }
