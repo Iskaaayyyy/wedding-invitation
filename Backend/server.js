@@ -3,6 +3,8 @@ const mysql = require("mysql2/promise");
 const path = require("path");
 const multer = require("multer");
 const cloudinary = require("cloudinary").v2;
+const axios = require("axios");
+const archiver = require("archiver");
 
 require("dotenv").config({ path: path.join(__dirname, ".env") });
 
