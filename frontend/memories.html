@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Wedding Memories | Mark & Pauline</title>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: Georgia, "Times New Roman", serif;
+    }
+
+    body {
+      background: #fffdf7;
+      color: #4f4a2a;
+      min-height: 100vh;
+    }
+
+    header {
+      background:
+        linear-gradient(rgba(60, 82, 27, 0.65), rgba(199, 166, 35, 0.45)),
+        url("https://images.unsplash.com/photo-1519741497674-611481863552") center/cover no-repeat;
+      color: white;
+      text-align: center;
+      padding: 70px 20px;
+    }
+
+    header h1 {
+      font-size: 42px;
+      font-weight: normal;
+      margin-bottom: 12px;
+    }
+
+    header p {
+      font-size: 18px;
+    }
+
+    .container {
+      padding: 45px 8%;
+      max-width: 1300px;
+      margin: auto;
+    }
+
+    .top-actions {
+      display: flex;
+      justify-content: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-bottom: 30px;
+    }
+
+    .btn {
+      width: auto;
+      padding: 13px 24px;
+      background: #7b972b;
+      color: white;
+      text-decoration: none;
+      border-radius: 30px;
+      border: none;
+      cursor: pointer;
+      font-size: 15px;
+      transition: 0.3s ease;
+    }
+
+    .btn:hover {
+      background: #d4af37;
+      transform: translateY(-2px);
+    }
+
+    .secondary {
+      background: #d4af37;
+    }
+
+    .secondary:hover {
+      background: #7b972b;
+    }
+
+    .album-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+
+    .memory-card {
+      background: white;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+      position: relative;
+    }
+
+    .select-box {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      width: 20px;
+      height: 20px;
+      z-index: 2;
+      cursor: pointer;
+    }
+
+    .memory-card img {
+      width: 100%;
+      height: 260px;
+      object-fit: cover;
+      display: block;
+    }
+
+    .memory-content {
+      padding: 18px;
+    }
+
+    .memory-content h3 {
+      color: #6a7f2b;
+      font-weight: normal;
+      margin-bottom: 8px;
+    }
+
+    .memory-content p {
+      font-size: 15px;
+      margin-bottom: 14px;
+    }
+
+    .download-one {
+      display: inline-block;
+      padding: 9px 16px;
+      background: #7b972b;
+      color: white;
+      border-radius: 20px;
+      text-decoration: none;
+      font-size: 14px;
+    }
+
+    .download-one:hover {
+      background: #d4af37;
+    }
+
+    .empty-message {
+      text-align: center;
+      font-size: 18px;
+      margin-top: 50px;
+    }
+
+    footer {
+      background: #5d6f22;
+      color: white;
+      text-align: center;
+      padding: 28px 20px;
+      margin-top: 45px;
+    }
+
+    @media (max-width: 900px) {
+      .album-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 560px) {
+      header h1 {
+        font-size: 32px;
+      }
+
+      .container {
+        padding: 35px 5%;
+      }
+
+      .album-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .top-actions {
+        flex-direction: column;
+      }
+
+      .btn {
+        width: 100%;
+        text-align: center;
+      }
+
+      .memory-card img {
+        height: 230px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <h1>Wedding Memories</h1>
+    <p>Mark Lee Amongo & Pauline Giselle Paraan</p>
+    <p>#PAULINEgetsMARKedFinaLEE</p>
+  </header>
+
+  <main class="container">
+    <div class="top-actions">
+      <a href="index.html#memoryActions" class="btn secondary">Upload Memories</a>
+      <button class="btn" onclick="downloadSelected()">Download Selected</button>
+      <a href="/api/memories/download/all" class="btn">Download All</a>
+      <a href="index.html" class="btn secondary">Back to Invitation</a>
+    </div>
+
+    <div class="album-grid" id="albumGrid"></div>
+
+    <p class="empty-message" id="emptyMessage"></p>
+  </main>
+
+  <footer>
+    <p>Thank you for sharing your beautiful memories with us.</p>
+  </footer>
+
+  <script>
+    let memories = [];
+
+    function escapeHTML(value) {
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    async function loadMemories() {
+      const albumGrid = document.getElementById("albumGrid");
+      const emptyMessage = document.getElementById("emptyMessage");
+
+      try {
+        const response = await fetch("/api/memories");
+        const result = await response.json();
+
+        if (!result.success) {
+          emptyMessage.textContent = "Unable to load memories.";
+          return;
+        }
+
+        memories = result.data;
+
+        if (memories.length === 0) {
+          emptyMessage.textContent = "No approved memories yet.";
+          return;
+        }
+
+        albumGrid.innerHTML = "";
+        emptyMessage.textContent = "";
+
+        memories.forEach(function(memory) {
+          const card = `
+            <div class="memory-card">
+              <input type="checkbox" class="select-box" value="${memory.id}">
+
+              <img src="${memory.image_url}" alt="Wedding memory from ${escapeHTML(memory.guest_name)}">
+
+              <div class="memory-content">
+                <h3>${escapeHTML(memory.guest_name)}</h3>
+                <p>${escapeHTML(memory.message || "Shared a beautiful memory with us.")}</p>
+                <a href="/api/memories/${memory.id}/download" class="download-one">Download Photo</a>
+              </div>
+            </div>
+          `;
+
+          albumGrid.innerHTML += card;
+        });
+      } catch (error) {
+        emptyMessage.textContent = "Unable to load memories.";
+      }
+    }
+
+    function downloadSelected() {
+      const selected = Array.from(document.querySelectorAll(".select-box:checked"))
+        .map(box => box.value);
+
+      if (selected.length === 0) {
+        alert("Please select at least one memory to download.");
+        return;
+      }
+
+      window.location.href = `/api/memories/download/selected?ids=${selected.join(",")}`;
+    }
+
+    loadMemories();
+  </script>
+
+</body>
+</html>

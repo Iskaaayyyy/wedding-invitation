@@ -20,6 +20,7 @@ const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
     fileSize: 5 * 1024 * 1024,
+    files: 10,
   },
   fileFilter: function (req, file, cb) {
     if (!file.mimetype.startsWith("image/")) {
@@ -32,7 +33,6 @@ const upload = multer({
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
 app.use(express.static(path.join(__dirname, "../frontend")));
 
 const pool = mysql.createPool({
@@ -92,6 +92,10 @@ app.get("/", (req, res) => {
 
 app.get("/admin.html", (req, res) => {
   res.sendFile(path.join(__dirname, "../frontend/admin.html"));
+});
+
+app.get("/memories.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "../frontend/memories.html"));
 });
 
 app.post("/api/rsvp", async (req, res) => {
@@ -274,7 +278,7 @@ app.get("/api/memories", async (req, res) => {
 });
 
 app.post("/api/memories", function (req, res) {
-  upload.single("memoryPhoto")(req, res, async function (error) {
+  upload.array("memoryPhotos", 10)(req, res, async function (error) {
     try {
       if (error) {
         return res.status(400).json({
@@ -285,42 +289,51 @@ app.post("/api/memories", function (req, res) {
 
       const { guestName, memoryMessage } = req.body;
 
-      if (!guestName || !req.file) {
+      if (!guestName || !req.files || req.files.length === 0) {
         return res.status(400).json({
           success: false,
-          message: "Your name and photo are required.",
+          message: "Your name and at least one photo are required.",
         });
       }
 
-      const base64Image = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
+      if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+        return res.status(500).json({
+          success: false,
+          message: "Cloudinary credentials are not configured.",
+        });
+      }
 
-      const uploadResult = await cloudinary.uploader.upload(base64Image, {
-        folder: "mark-pauline-wedding-memories",
-        resource_type: "image",
-      });
+      for (const file of req.files) {
+        const base64Image = `data:${file.mimetype};base64,${file.buffer.toString("base64")}`;
 
-      await pool.execute(
-        `INSERT INTO wedding_memories
-        (guest_name, message, image_url, public_id, status)
-        VALUES (?, ?, ?, ?, 'Pending')`,
-        [
-          guestName.trim(),
-          memoryMessage || "",
-          uploadResult.secure_url,
-          uploadResult.public_id,
-        ]
-      );
+        const uploadResult = await cloudinary.uploader.upload(base64Image, {
+          folder: "mark-pauline-wedding-memories",
+          resource_type: "image",
+        });
+
+        await pool.execute(
+          `INSERT INTO wedding_memories
+          (guest_name, message, image_url, public_id, status)
+          VALUES (?, ?, ?, ?, 'Pending')`,
+          [
+            guestName.trim(),
+            memoryMessage || "",
+            uploadResult.secure_url,
+            uploadResult.public_id,
+          ]
+        );
+      }
 
       res.json({
         success: true,
-        message: "Thank you! Your memory was uploaded and is waiting for approval.",
+        message: "Thank you! Your memories were uploaded and are waiting for approval.",
       });
     } catch (uploadError) {
       console.error("Memory Upload Error:", uploadError.message);
 
       res.status(500).json({
         success: false,
-        message: "Unable to upload memory. Please try again.",
+        message: "Unable to upload memories. Please try again.",
       });
     }
   });
@@ -404,6 +417,132 @@ app.delete("/api/admin/memories/:id", checkAdminPassword, async (req, res) => {
       success: false,
       message: "Unable to delete memory.",
     });
+  }
+});
+
+function cleanFilename(value) {
+  return String(value || "memory")
+    .replace(/[^a-z0-9]/gi, "_")
+    .toLowerCase();
+}
+
+async function downloadMemoriesAsZip(rows, res, zipName) {
+  res.setHeader("Content-Type", "application/zip");
+  res.setHeader("Content-Disposition", `attachment; filename="${zipName}"`);
+
+  const archive = archiver("zip", {
+    zlib: { level: 9 },
+  });
+
+  archive.on("error", function (error) {
+    throw error;
+  });
+
+  archive.pipe(res);
+
+  for (const memory of rows) {
+    try {
+      const imageResponse = await axios({
+        method: "GET",
+        url: memory.image_url,
+        responseType: "stream",
+      });
+
+      const filename = `${cleanFilename(memory.guest_name)}_memory_${memory.id}.jpg`;
+      archive.append(imageResponse.data, { name: filename });
+    } catch (error) {
+      console.error("Image ZIP Error:", error.message);
+    }
+  }
+
+  await archive.finalize();
+}
+
+app.get("/api/memories/:id/download", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const [rows] = await pool.execute(
+      `SELECT id, guest_name, image_url 
+       FROM wedding_memories 
+       WHERE id = ? AND status = 'Approved'`,
+      [id]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).send("Memory not found.");
+    }
+
+    const memory = rows[0];
+
+    const imageResponse = await axios({
+      method: "GET",
+      url: memory.image_url,
+      responseType: "stream",
+    });
+
+    res.setHeader("Content-Type", imageResponse.headers["content-type"] || "image/jpeg");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${cleanFilename(memory.guest_name)}_memory_${memory.id}.jpg"`
+    );
+
+    imageResponse.data.pipe(res);
+  } catch (error) {
+    console.error("Download Memory Error:", error.message);
+    res.status(500).send("Unable to download memory.");
+  }
+});
+
+app.get("/api/memories/download/all", async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT id, guest_name, image_url 
+       FROM wedding_memories
+       WHERE status = 'Approved'
+       ORDER BY created_at DESC`
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).send("No approved memories found.");
+    }
+
+    await downloadMemoriesAsZip(rows, res, "mark-pauline-all-memories.zip");
+  } catch (error) {
+    console.error("Download All Memories Error:", error.message);
+    res.status(500).send("Unable to download all memories.");
+  }
+});
+
+app.get("/api/memories/download/selected", async (req, res) => {
+  try {
+    const ids = String(req.query.ids || "")
+      .split(",")
+      .map(id => Number(id))
+      .filter(id => Number.isInteger(id) && id > 0);
+
+    if (ids.length === 0) {
+      return res.status(400).send("No memories selected.");
+    }
+
+    const placeholders = ids.map(() => "?").join(",");
+
+    const [rows] = await pool.execute(
+      `SELECT id, guest_name, image_url 
+       FROM wedding_memories
+       WHERE status = 'Approved' AND id IN (${placeholders})
+       ORDER BY created_at DESC`,
+      ids
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).send("No approved selected memories found.");
+    }
+
+    await downloadMemoriesAsZip(rows, res, "mark-pauline-selected-memories.zip");
+  } catch (error) {
+    console.error("Download Selected Memories Error:", error.message);
+    res.status(500).send("Unable to download selected memories.");
   }
 });
 
