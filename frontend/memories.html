@@ -103,12 +103,15 @@
       cursor: pointer;
     }
 
-    .memory-card img {
-      width: 100%;
-      height: 260px;
-      object-fit: cover;
-      display: block;
-    }
+    .memory-card img,
+    .memory-card video {
+  width: 100%;
+  height: 260px;
+  object-fit: cover;
+  display: block;
+  background: #000;
+}
+    
 
     .memory-content {
       padding: 18px;
@@ -248,23 +251,31 @@
         albumGrid.innerHTML = "";
         emptyMessage.textContent = "";
 
-        memories.forEach(function(memory) {
-          const card = `
-            <div class="memory-card">
-              <input type="checkbox" class="select-box" value="${memory.id}">
+memories.forEach(function(memory) {
+  const mediaElement = memory.media_type === "video"
+    ? `<video src="${memory.image_url}" controls></video>`
+    : `<img src="${memory.image_url}" alt="Wedding memory from ${escapeHTML(memory.guest_name)}">`;
 
-              <img src="${memory.image_url}" alt="Wedding memory from ${escapeHTML(memory.guest_name)}">
+  const downloadText = memory.media_type === "video"
+    ? "Download Video"
+    : "Download Photo";
 
-              <div class="memory-content">
-                <h3>${escapeHTML(memory.guest_name)}</h3>
-                <p>${escapeHTML(memory.message || "Shared a beautiful memory with us.")}</p>
-                <a href="/api/memories/${memory.id}/download" class="download-one">Download Photo</a>
-              </div>
-            </div>
-          `;
+  const card = `
+    <div class="memory-card">
+      <input type="checkbox" class="select-box" value="${memory.id}">
 
-          albumGrid.innerHTML += card;
-        });
+      ${mediaElement}
+
+      <div class="memory-content">
+        <h3>${escapeHTML(memory.guest_name)}</h3>
+        <p>${escapeHTML(memory.message || "Shared a beautiful memory with us.")}</p>
+        <a href="/api/memories/${memory.id}/download" class="download-one">${downloadText}</a>
+      </div>
+    </div>
+  `;
+
+  albumGrid.innerHTML += card;
+});
       } catch (error) {
         emptyMessage.textContent = "Unable to load memories.";
       }

@@ -2,38 +2,44 @@ const express = require("express");
 const mysql = require("mysql2/promise");
 const path = require("path");
 const multer = require("multer");
-const cloudinary = require("cloudinary").v2;
-const axios = require("axios");
+const fs = require("fs");
+const os = require("os");
 const archiver = require("archiver");
+const { google } = require("googleapis");
 
 require("dotenv").config({ path: path.join(__dirname, ".env") });
 
 const app = express();
 
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, "../frontend")));
 
 const upload = multer({
-  storage: multer.memoryStorage(),
+  storage: multer.diskStorage({
+    destination: function (req, file, cb) {
+      cb(null, os.tmpdir());
+    },
+    filename: function (req, file, cb) {
+      const safeName = Date.now() + "-" + file.originalname.replace(/[^a-zA-Z0-9.\-_]/g, "_");
+      cb(null, safeName);
+    },
+  }),
   limits: {
-    fileSize: 5 * 1024 * 1024,
-    files: 10,
+    fileSize: 2 * 1024 * 1024 * 1024, // 2GB per file
+    files: 50,
   },
   fileFilter: function (req, file, cb) {
-    if (!file.mimetype.startsWith("image/")) {
-      return cb(new Error("Only image files are allowed."));
+    const isImage = file.mimetype.startsWith("image/");
+    const isVideo = file.mimetype.startsWith("video/");
+
+    if (!isImage && !isVideo) {
+      return cb(new Error("Only photo and video files are allowed."));
     }
 
     cb(null, true);
   },
 });
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, "../frontend")));
 
 const pool = mysql.createPool({
   host: process.env.MYSQLHOST || process.env.DB_HOST || "localhost",
@@ -51,6 +57,23 @@ const pool = mysql.createPool({
         }
       : undefined,
 });
+
+function getDriveClient() {
+  if (!process.env.GOOGLE_CLIENT_EMAIL || !process.env.GOOGLE_PRIVATE_KEY || !process.env.GOOGLE_DRIVE_FOLDER_ID) {
+    throw new Error("Google Drive credentials are not configured.");
+  }
+
+  const auth = new google.auth.JWT({
+    email: process.env.GOOGLE_CLIENT_EMAIL,
+    key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, "\n"),
+    scopes: ["https://www.googleapis.com/auth/drive"],
+  });
+
+  return google.drive({
+    version: "v3",
+    auth,
+  });
+}
 
 async function initializeDatabase() {
   try {
@@ -73,14 +96,36 @@ async function initializeDatabase() {
         message TEXT,
         image_url TEXT NOT NULL,
         public_id VARCHAR(255) NOT NULL,
+        media_type VARCHAR(20) DEFAULT 'image',
+        file_name VARCHAR(255),
+        mime_type VARCHAR(100),
         status ENUM('Pending', 'Approved') DEFAULT 'Pending',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
 
+    await addColumnIfMissing("wedding_memories", "media_type", "VARCHAR(20) DEFAULT 'image'");
+    await addColumnIfMissing("wedding_memories", "file_name", "VARCHAR(255)");
+    await addColumnIfMissing("wedding_memories", "mime_type", "VARCHAR(100)");
+
     console.log("Database tables are ready.");
   } catch (error) {
     console.error("Database Initialization Error:", error.message);
+  }
+}
+
+async function addColumnIfMissing(tableName, columnName, columnDefinition) {
+  try {
+    await pool.execute(`
+      ALTER TABLE ${tableName}
+      ADD COLUMN ${columnName} ${columnDefinition}
+    `);
+  } catch (error) {
+    const message = error.message.toLowerCase();
+
+    if (!message.includes("duplicate") && !message.includes("exists")) {
+      console.error(`Column Update Error (${columnName}):`, error.message);
+    }
   }
 }
 
@@ -256,7 +301,8 @@ app.get("/api/memories", async (req, res) => {
         id,
         guest_name,
         message,
-        image_url,
+        CONCAT('/api/memories/', id, '/media') AS image_url,
+        media_type,
         created_at
       FROM wedding_memories
       WHERE status = 'Approved'
@@ -278,7 +324,9 @@ app.get("/api/memories", async (req, res) => {
 });
 
 app.post("/api/memories", function (req, res) {
-  upload.array("memoryPhotos", 10)(req, res, async function (error) {
+  upload.array("memoryPhotos", 50)(req, res, async function (error) {
+    const uploadedTempFiles = req.files || [];
+
     try {
       if (error) {
         return res.status(400).json({
@@ -289,39 +337,51 @@ app.post("/api/memories", function (req, res) {
 
       const { guestName, memoryMessage } = req.body;
 
-      if (!guestName || !req.files || req.files.length === 0) {
+      if (!guestName || uploadedTempFiles.length === 0) {
         return res.status(400).json({
           success: false,
-          message: "Your name and at least one photo are required.",
+          message: "Your name and at least one photo or video are required.",
         });
       }
 
-      if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
-        return res.status(500).json({
-          success: false,
-          message: "Cloudinary credentials are not configured.",
-        });
-      }
+      const drive = getDriveClient();
 
-      for (const file of req.files) {
-        const base64Image = `data:${file.mimetype};base64,${file.buffer.toString("base64")}`;
+      for (const file of uploadedTempFiles) {
+        const mediaType = file.mimetype.startsWith("video/") ? "video" : "image";
 
-        const uploadResult = await cloudinary.uploader.upload(base64Image, {
-          folder: "mark-pauline-wedding-memories",
-          resource_type: "image",
+        const driveUpload = await drive.files.create({
+          requestBody: {
+            name: file.originalname,
+            parents: [process.env.GOOGLE_DRIVE_FOLDER_ID],
+            mimeType: file.mimetype,
+          },
+          media: {
+            mimeType: file.mimetype,
+            body: fs.createReadStream(file.path),
+          },
+          fields: "id, name, mimeType, webViewLink",
         });
+
+        const driveFileId = driveUpload.data.id;
+
+        const driveViewLink = `https://drive.google.com/file/d/${driveFileId}/view`;
 
         await pool.execute(
           `INSERT INTO wedding_memories
-          (guest_name, message, image_url, public_id, status)
-          VALUES (?, ?, ?, ?, 'Pending')`,
+          (guest_name, message, image_url, public_id, media_type, file_name, mime_type, status)
+          VALUES (?, ?, ?, ?, ?, ?, ?, 'Pending')`,
           [
             guestName.trim(),
             memoryMessage || "",
-            uploadResult.secure_url,
-            uploadResult.public_id,
+            driveViewLink,
+            driveFileId,
+            mediaType,
+            file.originalname,
+            file.mimetype,
           ]
         );
+
+        fs.unlink(file.path, function () {});
       }
 
       res.json({
@@ -329,7 +389,11 @@ app.post("/api/memories", function (req, res) {
         message: "Thank you! Your memories were uploaded and are waiting for approval.",
       });
     } catch (uploadError) {
-      console.error("Memory Upload Error:", uploadError.message);
+      console.error("Google Drive Upload Error:", uploadError.message);
+
+      for (const file of uploadedTempFiles) {
+        fs.unlink(file.path, function () {});
+      }
 
       res.status(500).json({
         success: false,
@@ -346,8 +410,11 @@ app.get("/api/admin/memories", checkAdminPassword, async (req, res) => {
         id,
         guest_name,
         message,
-        image_url,
+        CONCAT('/api/memories/', id, '/media') AS image_url,
         public_id,
+        media_type,
+        file_name,
+        mime_type,
         status,
         created_at
       FROM wedding_memories
@@ -394,6 +461,7 @@ app.put("/api/admin/memories/:id/approve", checkAdminPassword, async (req, res) 
 app.delete("/api/admin/memories/:id", checkAdminPassword, async (req, res) => {
   try {
     const { id } = req.params;
+    const drive = getDriveClient();
 
     const [rows] = await pool.execute(
       "SELECT public_id FROM wedding_memories WHERE id = ?",
@@ -401,7 +469,13 @@ app.delete("/api/admin/memories/:id", checkAdminPassword, async (req, res) => {
     );
 
     if (rows.length > 0 && rows[0].public_id) {
-      await cloudinary.uploader.destroy(rows[0].public_id);
+      try {
+        await drive.files.delete({
+          fileId: rows[0].public_id,
+        });
+      } catch (driveError) {
+        console.error("Google Drive Delete Warning:", driveError.message);
+      }
     }
 
     await pool.execute("DELETE FROM wedding_memories WHERE id = ?", [id]);
@@ -420,13 +494,74 @@ app.delete("/api/admin/memories/:id", checkAdminPassword, async (req, res) => {
   }
 });
 
+app.get("/api/memories/:id/media", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const drive = getDriveClient();
+
+    const [rows] = await pool.execute(
+      `SELECT public_id, mime_type, file_name 
+       FROM wedding_memories
+       WHERE id = ?`,
+      [id]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).send("Memory not found.");
+    }
+
+    const file = rows[0];
+
+    const driveResponse = await drive.files.get(
+      {
+        fileId: file.public_id,
+        alt: "media",
+      },
+      {
+        responseType: "stream",
+      }
+    );
+
+    res.setHeader("Content-Type", file.mime_type || "application/octet-stream");
+    driveResponse.data.pipe(res);
+  } catch (error) {
+    console.error("Media Stream Error:", error.message);
+    res.status(500).send("Unable to load memory media.");
+  }
+});
+
 function cleanFilename(value) {
   return String(value || "memory")
     .replace(/[^a-z0-9]/gi, "_")
     .toLowerCase();
 }
 
+async function appendDriveFileToZip(archive, drive, memory) {
+  try {
+    const driveResponse = await drive.files.get(
+      {
+        fileId: memory.public_id,
+        alt: "media",
+      },
+      {
+        responseType: "stream",
+      }
+    );
+
+    const extension = memory.media_type === "video" ? "mp4" : "jpg";
+    const filename = memory.file_name
+      ? memory.file_name.replace(/[^a-zA-Z0-9.\-_]/g, "_")
+      : `${cleanFilename(memory.guest_name)}_memory_${memory.id}.${extension}`;
+
+    archive.append(driveResponse.data, { name: filename });
+  } catch (error) {
+    console.error("ZIP Append Error:", error.message);
+  }
+}
+
 async function downloadMemoriesAsZip(rows, res, zipName) {
+  const drive = getDriveClient();
+
   res.setHeader("Content-Type", "application/zip");
   res.setHeader("Content-Disposition", `attachment; filename="${zipName}"`);
 
@@ -441,18 +576,7 @@ async function downloadMemoriesAsZip(rows, res, zipName) {
   archive.pipe(res);
 
   for (const memory of rows) {
-    try {
-      const imageResponse = await axios({
-        method: "GET",
-        url: memory.image_url,
-        responseType: "stream",
-      });
-
-      const filename = `${cleanFilename(memory.guest_name)}_memory_${memory.id}.jpg`;
-      archive.append(imageResponse.data, { name: filename });
-    } catch (error) {
-      console.error("Image ZIP Error:", error.message);
-    }
+    await appendDriveFileToZip(archive, drive, memory);
   }
 
   await archive.finalize();
@@ -461,9 +585,10 @@ async function downloadMemoriesAsZip(rows, res, zipName) {
 app.get("/api/memories/:id/download", async (req, res) => {
   try {
     const { id } = req.params;
+    const drive = getDriveClient();
 
     const [rows] = await pool.execute(
-      `SELECT id, guest_name, image_url 
+      `SELECT id, guest_name, public_id, media_type, file_name, mime_type
        FROM wedding_memories 
        WHERE id = ? AND status = 'Approved'`,
       [id]
@@ -475,19 +600,25 @@ app.get("/api/memories/:id/download", async (req, res) => {
 
     const memory = rows[0];
 
-    const imageResponse = await axios({
-      method: "GET",
-      url: memory.image_url,
-      responseType: "stream",
-    });
-
-    res.setHeader("Content-Type", imageResponse.headers["content-type"] || "image/jpeg");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="${cleanFilename(memory.guest_name)}_memory_${memory.id}.jpg"`
+    const driveResponse = await drive.files.get(
+      {
+        fileId: memory.public_id,
+        alt: "media",
+      },
+      {
+        responseType: "stream",
+      }
     );
 
-    imageResponse.data.pipe(res);
+    const extension = memory.media_type === "video" ? "mp4" : "jpg";
+    const filename = memory.file_name
+      ? memory.file_name.replace(/[^a-zA-Z0-9.\-_]/g, "_")
+      : `${cleanFilename(memory.guest_name)}_memory_${memory.id}.${extension}`;
+
+    res.setHeader("Content-Type", memory.mime_type || "application/octet-stream");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+
+    driveResponse.data.pipe(res);
   } catch (error) {
     console.error("Download Memory Error:", error.message);
     res.status(500).send("Unable to download memory.");
@@ -497,7 +628,7 @@ app.get("/api/memories/:id/download", async (req, res) => {
 app.get("/api/memories/download/all", async (req, res) => {
   try {
     const [rows] = await pool.query(
-      `SELECT id, guest_name, image_url 
+      `SELECT id, guest_name, public_id, media_type, file_name, mime_type
        FROM wedding_memories
        WHERE status = 'Approved'
        ORDER BY created_at DESC`
@@ -528,7 +659,7 @@ app.get("/api/memories/download/selected", async (req, res) => {
     const placeholders = ids.map(() => "?").join(",");
 
     const [rows] = await pool.execute(
-      `SELECT id, guest_name, image_url 
+      `SELECT id, guest_name, public_id, media_type, file_name, mime_type
        FROM wedding_memories
        WHERE status = 'Approved' AND id IN (${placeholders})
        ORDER BY created_at DESC`,

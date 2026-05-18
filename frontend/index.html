@@ -649,6 +649,38 @@
       .memory-upload-panel {
         padding: 22px;
       }
+      .upload-progress-wrapper {
+  margin-top: 18px;
+  background: #f8f9ee;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid #e1daa2;
+}
+
+.upload-progress-label {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+  color: #5c5731;
+  margin-bottom: 8px;
+}
+
+.upload-progress-bar {
+  width: 100%;
+  height: 14px;
+  background: #e8e3b7;
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.upload-progress-fill {
+  width: 0%;
+  height: 100%;
+  background: #7b972b;
+  border-radius: 20px;
+  transition: width 0.2s ease;
+}
     }
   </style>
 </head>
@@ -922,7 +954,7 @@
       type="file" 
       id="memoryPhotos" 
       name="memoryPhotos" 
-      accept="image/*" 
+      accept="image/*,video/*" 
       multiple 
       hidden
     >
@@ -946,7 +978,18 @@
         <button type="submit" id="memorySubmitBtn">Submit Memories</button>
       </form>
 
-      <p id="memoryResponseMessage"></p>
+      <div class="upload-progress-wrapper hidden" id="uploadProgressWrapper">
+  <div class="upload-progress-label">
+    <span id="uploadProgressText">Preparing upload...</span>
+    <span id="uploadProgressPercent">0%</span>
+  </div>
+
+  <div class="upload-progress-bar">
+    <div class="upload-progress-fill" id="uploadProgressFill"></div>
+  </div>
+</div>
+
+<p id="memoryResponseMessage"></p>
     </div>
   </section>
 
@@ -1093,8 +1136,116 @@
     updateCountdown();
     checkRsvpDeadline();
 
-    document.getElementById("memoryForm").addEventListener("submit", async function(e) {
-      e.preventDefault();
+document.getElementById("memoryForm").addEventListener("submit", function(e) {
+  e.preventDefault();
+
+  const memoryResponseMessage = document.getElementById("memoryResponseMessage");
+  const memorySubmitBtn = document.getElementById("memorySubmitBtn");
+  const uploadProgressWrapper = document.getElementById("uploadProgressWrapper");
+  const uploadProgressFill = document.getElementById("uploadProgressFill");
+  const uploadProgressText = document.getElementById("uploadProgressText");
+  const uploadProgressPercent = document.getElementById("uploadProgressPercent");
+
+  if (selectedMemoryFiles.length === 0) {
+    memoryResponseMessage.textContent = "Please choose at least one photo or video.";
+    memoryResponseMessage.style.color = "red";
+    return;
+  }
+
+  const guestName = document.getElementById("guestName").value.trim();
+
+  if (!guestName) {
+    memoryResponseMessage.textContent = "Please enter your name.";
+    memoryResponseMessage.style.color = "red";
+    return;
+  }
+
+  const formData = new FormData();
+
+  formData.append("guestName", guestName);
+  formData.append("memoryMessage", document.getElementById("memoryMessage").value.trim());
+
+  selectedMemoryFiles.forEach(function(file) {
+    formData.append("memoryPhotos", file);
+  });
+
+  const xhr = new XMLHttpRequest();
+
+  memorySubmitBtn.disabled = true;
+  memorySubmitBtn.textContent = "Uploading...";
+  memoryResponseMessage.textContent = "";
+
+  uploadProgressWrapper.classList.remove("hidden");
+  uploadProgressFill.style.width = "0%";
+  uploadProgressPercent.textContent = "0%";
+  uploadProgressText.textContent = "Starting upload...";
+
+  xhr.upload.addEventListener("progress", function(event) {
+    if (event.lengthComputable) {
+      const percent = Math.round((event.loaded / event.total) * 100);
+
+      uploadProgressFill.style.width = percent + "%";
+      uploadProgressPercent.textContent = percent + "%";
+
+      if (percent < 100) {
+        uploadProgressText.textContent = "Uploading memories...";
+      } else {
+        uploadProgressText.textContent = "Upload complete. Saving to Google Drive...";
+      }
+    }
+  });
+
+  xhr.addEventListener("load", function() {
+    try {
+      const result = JSON.parse(xhr.responseText);
+
+      memoryResponseMessage.textContent = result.message;
+      memoryResponseMessage.style.color = result.success ? "green" : "red";
+
+      if (result.success) {
+        uploadProgressFill.style.width = "100%";
+        uploadProgressPercent.textContent = "100%";
+        uploadProgressText.textContent = "Memories uploaded successfully.";
+
+        document.getElementById("memoryForm").reset();
+        document.getElementById("memoryPhotos").value = "";
+        document.getElementById("previewGrid").innerHTML = "";
+        document.getElementById("selectedPhotoCount").textContent = "";
+        selectedMemoryFiles = [];
+      } else {
+        uploadProgressText.textContent = "Upload failed.";
+      }
+    } catch (error) {
+      memoryResponseMessage.textContent = "Upload finished, but the server response could not be read.";
+      memoryResponseMessage.style.color = "red";
+      uploadProgressText.textContent = "Upload failed.";
+    }
+
+    memorySubmitBtn.disabled = false;
+    memorySubmitBtn.textContent = "Submit Memories";
+  });
+
+  xhr.addEventListener("error", function() {
+    memoryResponseMessage.textContent = "Unable to upload memories. Please check your connection and try again.";
+    memoryResponseMessage.style.color = "red";
+    uploadProgressText.textContent = "Upload failed.";
+
+    memorySubmitBtn.disabled = false;
+    memorySubmitBtn.textContent = "Submit Memories";
+  });
+
+  xhr.addEventListener("abort", function() {
+    memoryResponseMessage.textContent = "Upload was cancelled.";
+    memoryResponseMessage.style.color = "red";
+    uploadProgressText.textContent = "Upload cancelled.";
+
+    memorySubmitBtn.disabled = false;
+    memorySubmitBtn.textContent = "Submit Memories";
+  });
+
+  xhr.open("POST", "/api/memories");
+  xhr.send(formData);
+});
 
       const memoryResponseMessage = document.getElementById("memoryResponseMessage");
       const memorySubmitBtn = document.getElementById("memorySubmitBtn");
